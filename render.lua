@@ -12,7 +12,7 @@ end
 
 render.setup = function()
   render.tileset = render._load_tex("gfx/tileset.png")
-  render.player = render._load_tex("gfx/player.png")
+  render.player_idle = {render._load_tex("gfx/player_idle1.png"), render._load_tex("gfx/player_idle2.png")}
 
   render.tileset_quads = {}
 
@@ -110,7 +110,7 @@ render._draw_debug_segments = function(state)
  love.graphics.setColor(1, 1, 1)
 end
 
-render._render_level = function(state)
+render._render_level = function(state, render_tick)
   for y = 0, state.height-1 do
     for x = 0, state.width-1 do
       render._draw_tile(x, y, game_state.index(state, x, y, state.dirt_layer))
@@ -135,13 +135,17 @@ render._render_level = function(state)
     end
   end
 
-  render._draw_on_tile(state.player_pos[1], state.player_pos[2], render.player)
+  if render_tick % 60 < 30 then
+    render._draw_on_tile(state.player_pos[1], state.player_pos[2], render.player_idle[1])
+  else
+    render._draw_on_tile(state.player_pos[1], state.player_pos[2], render.player_idle[2])
+  end
 end
 
-render.render_game = function(state)
+render.render_game = function(state, render_tick)
   local evaluated_state = game_state.evaluate(state)
   love.graphics.clear(16/255, 25/255, 28/255)
-  render._render_level(evaluated_state)
+  render._render_level(evaluated_state, render_tick)
 
   --render._draw_debug_segments(evaluated_state)
 end

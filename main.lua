@@ -2,6 +2,7 @@ local game_state = require('game_state')
 local render = require('render')
 
 local state
+local render_tick = 0
 
 function love.load()
   render.setup()
@@ -10,7 +11,7 @@ end
 
 function love.draw()
   if state then
-    render.render_game(state)
+    render.render_game(state, render_tick)
   end
 end
 
@@ -44,7 +45,7 @@ function love.quit()
 end
 
 local fixed_update = function()
-
+  render_tick = render_tick + 1
 end
 
 local accumulatedDeltaTime = 0
