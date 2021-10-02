@@ -37,18 +37,15 @@ game_state.load_level = function(state, level_index)
   end
 end
 
-game_state.index = function(level_data, x, y, data)
-  if data == nil then data = level_data.data end
-
+game_state.index = function(level_data, x, y)
   assert(x >= 0 and x < level_data.width)
   assert(y >= 0 and y < level_data.height)
 
   local index = (x + y * level_data.width) + 1
-  return data[index] - 1
+  return level_data.data[index] - 1
 end
 
 game_state._set = function(level_data, x, y, tile_id)
-
   assert(tile_id ~= nil)
   assert(x >= 0 and x < level_data.width)
   assert(y >= 0 and y < level_data.height)
@@ -85,8 +82,31 @@ game_state.evaluate = function(state)
   return evaluated
 end
 
+game_state._direction_to_vector = function(direction)
+  local move = {0, 0}
+
+  if direction == "right" then
+    move[1] = 1
+  elseif direction == "left" then
+    move[1] = -1
+  elseif direction == "down" then
+    move[2] = 1
+  elseif direction == "up" then
+    move[2] = -1
+  end
+
+  return move
+end
+
 game_state.move = function(state, direction)
-  table.insert(state.moves, direction)
+  local state_evaluated = game_state.evaluate(state)
+
+  local move = game_state._direction_to_vector(direction)
+  local new_pos = {state_evaluated.player_pos[1] + move[1], state_evaluated.player_pos[2] + move[2]}
+
+  if game_state.index(state_evaluated, new_pos[1], new_pos[2]) == constants.air_tile_id then
+    table.insert(state.moves, direction)
+  end
 end
 
 game_state.undo = function(state)
