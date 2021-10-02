@@ -151,9 +151,11 @@ game_state.evaluate = function(state)
     end
 
     -- Digging
+    local dug = false
     local target_tile_id = game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2])
     if game_state._tile_is_solid(target_tile_id) then
       if target_tile_id == constants.dirt_tile_id then
+        dug = true
         game_state._set(evaluated, evaluated.player_pos[1], evaluated.player_pos[2], constants.deleted_placeholder_tile)
       else
         return nil
@@ -161,7 +163,7 @@ game_state.evaluate = function(state)
     end
 
     -- special case for walking down stairs
-    if (direction == "left" or direction == "right") and
+    if not dug and (direction == "left" or direction == "right") and
        game_state._coord_valid(evaluated, evaluated.player_pos[1], evaluated.player_pos[2] + 1) and not game_state._tile_is_solid(game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2] + 1)) and
        game_state._coord_valid(evaluated, evaluated.player_pos[1], evaluated.player_pos[2] + 2) and game_state._tile_is_solid(game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2] + 2))
     then
