@@ -1,6 +1,7 @@
 local game_state = {}
 
 local constants = require("constants")
+local serpent = require("extern.serpent")
 
 local levels = {
   require('levels.teach_climb_gap').layers[1]
@@ -59,10 +60,15 @@ game_state.evaluate = function(state)
     width = state.width,
     height = state.height,
     data = {unpack(state.data)},
-    player_pos = {unpack(state.player_pos)}
+    player_pos = {unpack(state.player_pos)},
+    dead = false,
   }
 
   for _, direction in pairs(state.moves) do
+    if evaluated.dead then
+      return nil
+    end
+
     local move = {0, 0}
 
     if direction == "right" then
@@ -75,8 +81,52 @@ game_state.evaluate = function(state)
       move[2] = -1
     end
 
+    local grip = game_state.has_grip(evaluated)
+    if direction == "up" and not grip.beside then
+      return nil
+    end
+
+    local on_solid_ground = game_state._coord_valid(evaluated, evaluated.player_pos[1], evaluated.player_pos[2] + 1) and game_state._tile_is_solid(game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2] + 1))
+
+    -- don't allow jumping off a wall hang
+    if (direction == "left" and not grip.below_left and not on_solid_ground) or
+       (direction == "right" and not grip.below_right and not on_solid_ground)
+    then
+      return nil
+    end
+
     evaluated.player_pos[1] = evaluated.player_pos[1] + move[1]
     evaluated.player_pos[2] = evaluated.player_pos[2] + move[2]
+
+    if not game_state._coord_valid(evaluated, evaluated.player_pos[1], evaluated.player_pos[2]) or
+       game_state._tile_is_solid(game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2]))
+    then
+      return nil
+    end
+
+    -- special case for walking down stairs
+    if (direction == "left" or direction == "right") and
+       game_state._coord_valid(evaluated, evaluated.player_pos[1], evaluated.player_pos[2] + 1) and not game_state._tile_is_solid(game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2] + 1)) and
+       game_state._coord_valid(evaluated, evaluated.player_pos[1], evaluated.player_pos[2] + 2) and game_state._tile_is_solid(game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2] + 2))
+    then
+      evaluated.player_pos[2] = evaluated.player_pos[2] + 1
+    end
+
+    while true do
+      if (evaluated.player_pos[2] + 1) >= evaluated.height then
+        evaluated.dead = true
+        break
+      end
+
+      if game_state._tile_is_solid(game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2] + 1)) then break end
+
+      local new_grip = game_state.has_grip(evaluated)
+      if new_grip.beside or new_grip.below then
+        break
+      end
+
+      evaluated.player_pos[2] = evaluated.player_pos[2] + 1
+    end
   end
 
   return evaluated
@@ -98,20 +148,49 @@ game_state._direction_to_vector = function(direction)
   return move
 end
 
+game_state._tile_is_solid = function(tile_id)
+  return tile_id ~= constants.air_tile_id and tile_id ~= constants.loot_tile_id and tile_id ~= constants.level_end_tile_id
+end
+
+game_state._coord_valid = function(state, x, y)
+  return x >= 0 and x < state.width and y >= 0 and y < state.height
+end
+
+game_state.has_grip = function(state_evaluated)
+  local grip_at_offset = function(offX, offY)
+    local x = state_evaluated.player_pos[1] + offX
+    local y = state_evaluated.player_pos[2] + offY
+
+    return x >= 0 and x < state_evaluated.width and y >= 0 and y < state_evaluated.height and game_state._tile_is_solid(game_state.index(state_evaluated, x, y))
+  end
+
+  local result = {
+    left = grip_at_offset(-1, 0),
+    right = grip_at_offset(1, 0),
+    below_left = grip_at_offset(-1, 1),
+    below_right = grip_at_offset(1, 1),
+  }
+
+  result.beside = result.left or result.right
+  result.below = result.below_left or result.below_right
+
+  return result
+end
+
 game_state.move = function(state, direction)
-  local state_evaluated = game_state.evaluate(state)
+  table.insert(state.moves, direction)
 
-  local move = game_state._direction_to_vector(direction)
-  local new_pos = {state_evaluated.player_pos[1] + move[1], state_evaluated.player_pos[2] + move[2]}
-
-  if game_state.index(state_evaluated, new_pos[1], new_pos[2]) == constants.air_tile_id then
-    table.insert(state.moves, direction)
+  if not game_state.evaluate(state) then
+    table.remove(state.moves, #state.moves)
+  else
+    --print(serpent.line(state.moves))
   end
 end
 
 game_state.undo = function(state)
   if #state.moves > 0 then
     table.remove(state.moves, #state.moves)
+    --print(serpent.line(state.moves))
   end
 end
 
