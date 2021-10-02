@@ -11,6 +11,7 @@ end
 
 render.setup = function()
   render.tileset = render._load_tex("gfx/tileset.png")
+  render.player = render._load_tex("gfx/player.png")
 
   render.tileset_quads = {}
 
@@ -109,11 +110,14 @@ render._render_level = function(state)
       end
     end
   end
+
+  render._draw_on_tile(state.player_pos[1], state.player_pos[2], render.player)
 end
 
 render.render_game = function(state)
+  local evaluated_state = game_state.evaluate(state)
   love.graphics.clear(16/255, 25/255, 28/255)
-  render._render_level(state)
+  render._render_level(evaluated_state)
 end
 
 return render

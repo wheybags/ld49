@@ -19,7 +19,11 @@ function love.resize()
 end
 
 function love.keypressed(key)
-
+  if key == "right" or key == "left" or key == "up" or key == "down" then
+    game_state.move(state, key)
+  elseif key == "z" then
+    game_state.undo(state)
+  end
 end
 
 
