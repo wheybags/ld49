@@ -98,10 +98,17 @@ game_state.evaluate = function(state)
     evaluated.player_pos[1] = evaluated.player_pos[1] + move[1]
     evaluated.player_pos[2] = evaluated.player_pos[2] + move[2]
 
-    if not game_state._coord_valid(evaluated, evaluated.player_pos[1], evaluated.player_pos[2]) or
-       game_state._tile_is_solid(game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2]))
-    then
+    if not game_state._coord_valid(evaluated, evaluated.player_pos[1], evaluated.player_pos[2]) then
       return nil
+    end
+
+    local target_tile_id = game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2])
+    if game_state._tile_is_solid(target_tile_id) then
+      if target_tile_id == constants.dirt_tile_id then
+        game_state._set(evaluated, evaluated.player_pos[1], evaluated.player_pos[2], constants.air_tile_id)
+      else
+        return nil
+      end
     end
 
     -- special case for walking down stairs
