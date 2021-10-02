@@ -8,5 +8,6 @@ constants.air_tile_id = 0
 constants.level_end_tile_id = 4
 constants.loot_tile_id = 5
 constants.dirt_tile_id = 1
+constants.deleted_placeholder_tile = -1
 
 return constants

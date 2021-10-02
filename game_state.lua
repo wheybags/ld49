@@ -154,8 +154,7 @@ game_state.evaluate = function(state)
     local target_tile_id = game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2])
     if game_state._tile_is_solid(target_tile_id) then
       if target_tile_id == constants.dirt_tile_id then
-        game_state._set(evaluated, evaluated.player_pos[1], evaluated.player_pos[2], constants.air_tile_id)
-        game_state._try_drop_rocks(evaluated)
+        game_state._set(evaluated, evaluated.player_pos[1], evaluated.player_pos[2], constants.deleted_placeholder_tile)
       else
         return nil
       end
@@ -183,6 +182,21 @@ game_state.evaluate = function(state)
       end
 
       evaluated.player_pos[2] = evaluated.player_pos[2] + 1
+    end
+
+    game_state._try_drop_rocks(evaluated)
+
+    for y = 0, evaluated.height-1 do
+      for x = 0, evaluated.width-1 do
+        local tile_id = game_state.index(evaluated, x, y)
+        if tile_id == constants.deleted_placeholder_tile then
+          game_state._set(evaluated, x, y, constants.air_tile_id)
+        end
+      end
+    end
+
+    if game_state._tile_is_solid(game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2])) then
+      evaluated.dead = true
     end
 
     eval_cache[cache_key] = game_state.deepcopy(evaluated)
@@ -266,7 +280,7 @@ game_state._try_drop_rocks = function(state)
       end
       assert(segment_tile)
 
-      if game_state._tile_is_solid(segment_tile) then
+      if game_state._tile_is_solid(segment_tile) and segment_tile ~= constants.deleted_placeholder_tile then
         local can_fall = true
         for _, point in pairs(segment) do
           if point[1] == 0 or point[1] == (state.width-1) or point[2] == 0 or point[2] == (state.height-1) then
