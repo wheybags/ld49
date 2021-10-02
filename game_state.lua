@@ -9,6 +9,35 @@ local levels = {
   require('levels.drop_block_path').layers[1],
 }
 
+
+game_state.slice = function(tbl, count)
+  local sliced = {}
+
+  for _, val in pairs(tbl) do
+    if count > 0 then
+      table.insert(sliced, val)
+    end
+    count = count - 1
+  end
+
+  return sliced
+end
+
+game_state.deepcopy = function(orig)
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        copy = {}
+        for orig_key, orig_value in next, orig, nil do
+            copy[game_state.deepcopy(orig_key)] = game_state.deepcopy(orig_value)
+        end
+        setmetatable(copy, game_state.deepcopy(getmetatable(orig)))
+    else -- number, string, boolean, etc
+        copy = orig
+    end
+    return copy
+end
+
 game_state.new = function()
   local state = {
     width = 0,
@@ -57,16 +86,33 @@ game_state._set = function(level_data, x, y, tile_id)
   level_data.data[index] = tile_id + 1
 end
 
-game_state.evaluate = function(state)
-  local evaluated = {
-    width = state.width,
-    height = state.height,
-    data = {unpack(state.data)},
-    player_pos = {unpack(state.player_pos)},
-    dead = false,
-  }
+local eval_cache = {}
 
-  for _, direction in pairs(state.moves) do
+game_state.evaluate = function(state)
+  local evaluate_recursive
+  evaluate_recursive = function(moves)
+    local cache_key = table.concat(moves, ',')
+
+    if eval_cache[cache_key] then
+      return game_state.deepcopy(eval_cache[cache_key])
+    end
+
+    if #moves == 0 then
+      return
+      {
+        width = state.width,
+        height = state.height,
+        data = {unpack(state.data)},
+        player_pos = {unpack(state.player_pos)},
+        dead = false,
+      }
+    end
+
+    local tails = game_state.slice(moves, #moves - 1)
+    local evaluated = evaluate_recursive(tails)
+    local direction = moves[#moves]
+
+
     if evaluated.dead then
       return nil
     end
@@ -138,9 +184,13 @@ game_state.evaluate = function(state)
 
       evaluated.player_pos[2] = evaluated.player_pos[2] + 1
     end
+
+    eval_cache[cache_key] = game_state.deepcopy(evaluated)
+
+    return evaluated
   end
 
-  return evaluated
+  return evaluate_recursive(state.moves)
 end
 
 game_state.calculate_segments = function(state)
