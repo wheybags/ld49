@@ -4,7 +4,9 @@ local constants = require("constants")
 local serpent = require("extern.serpent")
 
 local levels = {
-  require('levels.teach_climb_gap').layers[1]
+  --require('levels.test').layers[1],
+  --require('levels.teach_climb_gap').layers[1],
+  require('levels.drop_block_path').layers[1],
 }
 
 game_state.new = function()
@@ -102,10 +104,12 @@ game_state.evaluate = function(state)
       return nil
     end
 
+    -- Digging
     local target_tile_id = game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2])
     if game_state._tile_is_solid(target_tile_id) then
       if target_tile_id == constants.dirt_tile_id then
         game_state._set(evaluated, evaluated.player_pos[1], evaluated.player_pos[2], constants.air_tile_id)
+        game_state._try_drop_rocks(evaluated)
       else
         return nil
       end
@@ -137,6 +141,115 @@ game_state.evaluate = function(state)
   end
 
   return evaluated
+end
+
+game_state.calculate_segments = function(state)
+  local assignments = {}
+  local next_id = 0
+
+  local assigned
+
+  for y = 0, state.height-1 do
+    for x = 0, state.width-1 do
+      local tile_id = game_state.index(state, x, y)
+
+      assigned = nil
+      if x > 0 then
+        if tile_id == game_state.index(state, x - 1, y) then
+          assigned = assignments[(x-1) .. ',' .. y].id
+        end
+      end
+
+      if y > 0 then
+        if tile_id == game_state.index(state, x, y - 1) then
+          local new_assigned = assignments[x .. ',' .. (y-1)].id
+
+          if assigned ~= nil and assigned ~= new_assigned then
+            for key, value in pairs(assignments) do
+              if value.id == assigned then
+                assignments[key].id = new_assigned
+              end
+            end
+          end
+
+          assigned = new_assigned
+        end
+      end
+
+      if assigned == nil then
+        assigned = next_id
+        next_id = next_id + 1
+      end
+
+      assignments[x .. ',' .. y] = {pos = {x, y}, id = assigned}
+    end
+  end
+
+  local buckets_by_id = {}
+  for key, value in pairs(assignments) do
+    if buckets_by_id[value.id] == nil then
+      buckets_by_id[value.id] = {}
+    end
+
+    buckets_by_id[value.id][key] = value.pos
+  end
+
+  local final_buckets = {}
+  for _, bucket in pairs(buckets_by_id) do
+    table.insert(final_buckets, bucket)
+  end
+
+  return final_buckets
+end
+
+game_state._try_drop_rocks = function(state)
+  local segments = game_state.calculate_segments(state)
+  local did_move = true
+
+  while did_move do
+    did_move = false
+    for seg_index, segment in pairs(segments) do
+      local segment_tile
+      for _, point in pairs(segment) do
+        segment_tile = game_state.index(state, point[1], point[2])
+        break
+      end
+      assert(segment_tile)
+
+      if game_state._tile_is_solid(segment_tile) then
+        local can_fall = true
+        for _, point in pairs(segment) do
+          if point[1] == 0 or point[1] == (state.width-1) or point[2] == 0 or point[2] == (state.height-1) then
+            can_fall = false
+            break
+          end
+
+          local at_bottom_of_segment = segment[point[1] .. ',' .. (point[2] + 1)]
+          if not at_bottom_of_segment then
+            local tile_under = game_state.index(state, point[1], point[2] + 1)
+            if game_state._tile_is_solid(tile_under) then
+              can_fall = false
+              break
+            end
+          end
+        end
+
+        if can_fall then
+          did_move = true
+          for _, point in pairs(segment) do
+            game_state._set(state, point[1], point[2], constants.air_tile_id)
+          end
+          local new_segment = {}
+          for _, point in pairs(segment) do
+            local new_point = {point[1], point[2] + 1}
+            game_state._set(state, new_point[1], new_point[2], segment_tile)
+            new_segment[new_point[1] .. ',' .. new_point[2]] = new_point
+          end
+          segments[seg_index] = new_segment
+        end
+      end
+    end
+  end
 end
 
 game_state._direction_to_vector = function(direction)

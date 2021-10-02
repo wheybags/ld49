@@ -2,6 +2,7 @@ local render = {}
 
 local constants = require("constants")
 local game_state = require("game_state")
+local serpent = require('extern.serpent')
 
 render._load_tex = function(path)
   local tex = love.graphics.newImage(path)
@@ -86,6 +87,29 @@ render._draw_on_tile = function(x, y, image, rotation_deg)
                      constants.tile_size/2, constants.tile_size/2)
 end
 
+render._draw_rect_on_tile = function(x, y)
+
+  love.graphics.rectangle('fill',
+                          x * constants.tile_size * render.scale,
+                          y * constants.tile_size * render.scale,
+                          constants.tile_size/4 * render.scale, constants.tile_size/4 * render.scale)
+end
+
+render._draw_debug_segments = function(state)
+  local segments = game_state.calculate_segments(state)
+
+  for index, segment in pairs(segments) do
+    math.randomseed(index)
+    love.graphics.setColor(math.random(), math.random(), math.random())
+
+    for _, pos in pairs(segment) do
+      render._draw_rect_on_tile(pos[1], pos[2])
+    end
+  end
+
+ love.graphics.setColor(1, 1, 1)
+end
+
 render._render_level = function(state)
   for y = 0, state.height-1 do
     for x = 0, state.width-1 do
@@ -118,6 +142,8 @@ render.render_game = function(state)
   local evaluated_state = game_state.evaluate(state)
   love.graphics.clear(16/255, 25/255, 28/255)
   render._render_level(evaluated_state)
+
+  --render._draw_debug_segments(evaluated_state)
 end
 
 return render
