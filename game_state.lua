@@ -15,7 +15,6 @@ local coin_sfx = love.audio.newSource("/sfx/coin1.wav", "static")
 
 local levels = {
   --require('levels.test').layers[1],
-  require('levels.challenge').layers[1],
   require('levels.teach_move_basic').layers[1],
   require('levels.teach_need_coins').layers[1],
   require('levels.teach_dig').layers[1],
@@ -323,6 +322,8 @@ game_state.calculate_segments = function(state)
 end
 
 
+
+
 game_state._try_drop_rocks = function(state)
   local did_move = true
 
@@ -340,42 +341,100 @@ game_state._try_drop_rocks = function(state)
       end
     end
 
-    for seg_index, segment in pairs(segments) do
-      local segment_tile = segment_tiles[seg_index]
 
-      if (game_state._tile_is_solid(segment_tile) or segment_tile == constants.loot_tile_id or segment_tile == constants.level_end_tile_id) and segment_tile ~= constants.deleted_placeholder_tile then
-        local can_fall = true
-        for _, point in pairs(segment) do
+    -- CALC CANT FALL
+    -----------------
+
+    local cant_fall = {}
+
+    local tile_id_can_fall = function(tile_id)
+      return (game_state._tile_is_solid(tile_id) or tile_id == constants.loot_tile_id or tile_id == constants.level_end_tile_id) and
+             tile_id ~= constants.deleted_placeholder_tile
+    end
+
+    local cant_fall_changed = true
+    while cant_fall_changed do
+      cant_fall_changed = false
+
+      for segment_index, _ in pairs(segments) do
+        if cant_fall[segment_index] ~= nil then
+          goto continue
+        end
+
+        local segment_tile = segment_tiles[segment_index]
+
+        if not tile_id_can_fall(segment_tile) then
+          cant_fall[segment_index] = 1
+          cant_fall_changed = true
+          goto continue
+        end
+
+        for _, point in pairs(segments[segment_index]) do
+          -- attached to edge can't fall
           if point[1] == 0 or point[1] == (state.width-1) or point[2] == 0 or point[2] == (state.height-1) then
-            can_fall = false
-            break
+            cant_fall[segment_index] = 1
+            cant_fall_changed = true
+            goto continue
           end
 
-          local at_bottom_of_segment = segment[point[1] .. ',' .. (point[2] + 1)]
-          if not at_bottom_of_segment then
-            local tile_under = game_state.index(state, point[1], point[2] + 1)
-            if game_state._tile_is_solid(tile_under) then
-              can_fall = false
+
+          -- find the segment of the block underneath us
+          local segment_index_under_us = nil
+          local block_under_us_key = point[1] .. ',' .. (point[2] + 1)
+          for seg2_index, seg2 in pairs(segments) do
+            if seg2[block_under_us_key] ~= nil then
+              segment_index_under_us = seg2_index
               break
             end
           end
+          assert(segment_index_under_us)
+
+
+
+          if segment_index_under_us ~= segment_index and
+             game_state._tile_is_solid(segment_tiles[segment_index_under_us]) and
+             cant_fall[segment_index_under_us] ~= nil
+          then
+            cant_fall[segment_index] = 1
+            cant_fall_changed = true
+            goto continue
+          end
         end
 
-        if can_fall then
+        ::continue::
+      end
+    end
+
+
+    -- DO  FALL
+    -----------
+
+     for seg_index, segment in pairs(segments) do
+      local segment_tile = segment_tiles[seg_index]
+      -- clear out the current shape
+      for _, point in pairs(segment) do
+        game_state._set(state, point[1], point[2], constants.air_tile_id)
+      end
+    end
+
+    for seg_index, segment in pairs(segments) do
+      local segment_tile = segment_tiles[seg_index]
+
+      if segment_tile ~= constants.air_tile_id then
+        local offset = 0
+        if cant_fall[seg_index] == nil then
+          offset = 1
           did_move = true
+        end
 
-          -- clear out the current shape
-          for _, point in pairs(segment) do
-            game_state._set(state, point[1], point[2], constants.air_tile_id)
-          end
-
-          -- and repaint it one tile down
-          for _, point in pairs(segment) do
-            game_state._set(state, point[1], point[2]+1, segment_tile)
-          end
+        -- and repaint
+        for _, point in pairs(segment) do
+          assert(game_state.index(state, point[1], point[2]+offset) == constants.air_tile_id)
+          game_state._set(state, point[1], point[2]+offset, segment_tile)
         end
       end
     end
+
   end
 end
 
