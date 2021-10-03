@@ -4,9 +4,30 @@ local render = require('render')
 local state
 local render_tick = 0
 
+local music
+local music_modded
+
+mod_music = function()
+  music_modded = true
+  music:setVolume(0.4)
+  music:setPitch(0.9)
+end
+
+music_normal = function()
+  music_modded = false
+  music:setVolume(0.7)
+  music:setPitch(1)
+end
+
+
 function love.load()
   render.setup()
   state = game_state.new()
+
+  music = love.audio.newSource("/sfx/spy.mp3", "stream")
+  music:setLooping(true)
+  music:play()
+  music_normal()
 end
 
 function love.draw()
@@ -71,6 +92,20 @@ local fixed_update = function()
       key_action(current_key.key)
     end
     current_key.ticks = current_key.ticks + 1
+  end
+
+  local music_should_mod = false
+  if state then
+    local evaluated_state = game_state.evaluate(state)
+    music_should_mod = evaluated_state.dead
+  end
+
+  if music_should_mod ~= music_modded then
+    if music_should_mod then
+      mod_music()
+    else
+      music_normal()
+    end
   end
 end
 
