@@ -83,21 +83,25 @@ game_state.load_level = function(state, level_index)
   game_state._eval_cache = {}
 end
 
-game_state.index = function(level_data, x, y)
+game_state.index = function(level_data, x, y, data)
+  if data == nil then data = level_data.data end
+
   assert(x >= 0 and x < level_data.width)
   assert(y >= 0 and y < level_data.height)
 
   local index = (x + y * level_data.width) + 1
-  return level_data.data[index] - 1
+  return data[index] - 1
 end
 
-game_state._set = function(level_data, x, y, tile_id)
+game_state._set = function(level_data, x, y, tile_id, data)
+  if data == nil then data = level_data.data end
+
   assert(tile_id ~= nil)
   assert(x >= 0 and x < level_data.width)
   assert(y >= 0 and y < level_data.height)
 
   local index = (x + y * level_data.width) + 1
-  level_data.data[index] = tile_id + 1
+  data[index] = tile_id + 1
 end
 
 game_state._eval_cache = {}
@@ -411,6 +415,55 @@ game_state.undo = function(state)
     table.remove(state.moves, #state.moves)
     --print(serpent.line(state.moves))
   end
+end
+
+
+game_state.generate_transitions = function(state)
+  local tilesets =
+  {
+    {
+      orig_tile = constants.dirt_tile_id,
+      transitions = constants.dirt_transitions,
+    },
+    {
+      orig_tile = constants.rock_1_tile_id,
+      transitions = constants.bedrock_transitions,
+    },
+    {
+      orig_tile = constants.rock_2_tile_id,
+      transitions = constants.bedrock_transitions,
+    }
+  }
+
+  local with_transitions = { unpack(state.data)}
+
+
+  for _, tileset in pairs(tilesets) do
+    local get = function(x, y)
+      if x < 0 or x >= state.width or y < 0 or y >= state.height then
+        return "1"
+      end
+
+      local tile = game_state.index(state, x, y)
+      if tile == tileset.orig_tile then
+        return "1"
+      end
+
+      return "0"
+    end
+
+    for y = 0, state.height-1 do
+      for x = 0, state.width-1 do
+        local tile = game_state.index(state, x, y)
+        if tile == tileset.orig_tile then
+          local key = get(x,y-1) .. get(x,y+1) .. get(x-1,y) .. get(x+1,y)
+          game_state._set(state, x, y, tileset.transitions[key], with_transitions)
+        end
+      end
+    end
+  end
+
+  return with_transitions
 end
 
 return game_state

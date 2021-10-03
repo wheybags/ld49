@@ -111,9 +111,11 @@ render._draw_debug_segments = function(state)
 end
 
 render._render_level = function(state, render_tick)
+  local with_transitions = game_state.generate_transitions(state)
+
   for y = 0, state.height-1 do
     for x = 0, state.width-1 do
-      render._draw_tile(x, y, game_state.index(state, x, y, state.dirt_layer))
+      render._draw_tile(x, y, game_state.index(state, x, y, with_transitions))
     end
   end
   --for _, ball_pos in pairs(state.dirt_balls.bs) do
@@ -124,16 +126,16 @@ render._render_level = function(state, render_tick)
   --end
 
 
-  for y = 0, state.height-1 do
-    for x = 0, state.width-1 do
-      render._draw_tile(x, y, game_state.index(state, x, y, state.bedrock_layer))
-
-      local real_tile = game_state.index(state, x, y)
-      if real_tile ~= constants.dirt_tile_id and real_tile ~= constants.bedrock_tile_id then
-        render._draw_tile(x, y, real_tile)
-      end
-    end
-  end
+  --for y = 0, state.height-1 do
+  --  for x = 0, state.width-1 do
+  --    render._draw_tile(x, y, game_state.index(state, x, y, state.bedrock_layer))
+  --
+  --    local real_tile = game_state.index(state, x, y)
+  --    if real_tile ~= constants.dirt_tile_id and real_tile ~= constants.bedrock_tile_id then
+  --      render._draw_tile(x, y, real_tile)
+  --    end
+  --  end
+  --end
 
   if render_tick % 60 < 30 then
     render._draw_on_tile(state.player_pos[1], state.player_pos[2], render.player_idle[1])
