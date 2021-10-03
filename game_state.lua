@@ -5,7 +5,7 @@ local serpent = require("extern.serpent")
 
 local levels = {
   --require('levels.test').layers[1],
-  --require('levels.teach_climb_gap').layers[1],
+  require('levels.teach_climb_gap').layers[1],
   require('levels.drop_block_path').layers[1],
 }
 
@@ -44,7 +44,9 @@ game_state.new = function()
     height = 0,
     data = 0,
     player_pos = {0, 0},
+    loot = 0,
     moves = {},
+    level_index = 0,
   }
 
   game_state.load_level(state, 1)
@@ -58,15 +60,23 @@ game_state.load_level = function(state, level_index)
   state.width = level_data.width
   state.height = level_data.height
   state.data = {unpack(level_data.data)}
+  state.loot = 0
+  state.moves = {}
+  state.level_index = level_index
 
   for y = 0, level_data.height-1 do
     for x = 0, level_data.width-1 do
-      if game_state.index(state, x, y) == constants.spawn_tile_id then
+      local tile = game_state.index(state, x, y)
+      if tile == constants.spawn_tile_id then
         state.player_pos = {x, y}
         game_state._set(state, x, y, constants.air_tile_id)
+      elseif tile == constants.loot_tile_id then
+        state.loot = state.loot + 1
       end
     end
   end
+
+  game_state._eval_cache = {}
 end
 
 game_state.index = function(level_data, x, y)
@@ -86,15 +96,15 @@ game_state._set = function(level_data, x, y, tile_id)
   level_data.data[index] = tile_id + 1
 end
 
-local eval_cache = {}
+game_state._eval_cache = {}
 
 game_state.evaluate = function(state)
   local evaluate_recursive
   evaluate_recursive = function(moves)
     local cache_key = table.concat(moves, ',')
 
-    if eval_cache[cache_key] then
-      return game_state.deepcopy(eval_cache[cache_key])
+    if game_state._eval_cache[cache_key] then
+      return game_state.deepcopy(game_state._eval_cache[cache_key])
     end
 
     if #moves == 0 then
@@ -105,6 +115,9 @@ game_state.evaluate = function(state)
         data = {unpack(state.data)},
         player_pos = {unpack(state.player_pos)},
         dead = false,
+        win = false,
+        loot = state.loot,
+        level_index = state.level_index,
       }
     end
 
@@ -113,7 +126,7 @@ game_state.evaluate = function(state)
     local direction = moves[#moves]
 
 
-    if evaluated.dead then
+    if evaluated.dead or evaluated.win then
       return nil
     end
 
@@ -150,9 +163,10 @@ game_state.evaluate = function(state)
       return nil
     end
 
+    local target_tile_id = game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2])
+
     -- Digging
     local dug = false
-    local target_tile_id = game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2])
     if game_state._tile_is_solid(target_tile_id) then
       if target_tile_id == constants.dirt_tile_id then
         dug = true
@@ -160,6 +174,15 @@ game_state.evaluate = function(state)
       else
         return nil
       end
+    end
+
+    if target_tile_id == constants.loot_tile_id then
+      game_state._set(evaluated, evaluated.player_pos[1], evaluated.player_pos[2], constants.air_tile_id)
+      evaluated.loot = evaluated.loot - 1
+    end
+
+    if target_tile_id == constants.level_end_tile_id and evaluated.loot == 0 then
+      evaluated.win = true
     end
 
     -- special case for walking down stairs
@@ -201,7 +224,7 @@ game_state.evaluate = function(state)
       evaluated.dead = true
     end
 
-    eval_cache[cache_key] = game_state.deepcopy(evaluated)
+    game_state._eval_cache[cache_key] = game_state.deepcopy(evaluated)
 
     return evaluated
   end
@@ -364,12 +387,17 @@ game_state.has_grip = function(state_evaluated)
 end
 
 game_state.move = function(state, direction)
+  if game_state.evaluate(state).win then
+    local next_level_id = state.level_index + 1
+    if next_level_id <= #levels then
+      game_state.load_level(state, next_level_id)
+    end
+  end
+
   table.insert(state.moves, direction)
 
   if not game_state.evaluate(state) then
     table.remove(state.moves, #state.moves)
-  else
-    --print(serpent.line(state.moves))
   end
 end
 
