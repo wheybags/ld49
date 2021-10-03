@@ -8,6 +8,7 @@ local levels = {
   require('levels.teach_move_basic').layers[1],
   require('levels.teach_need_coins').layers[1],
   require('levels.teach_dig').layers[1],
+  require('levels.teach_dig2').layers[1],
   require('levels.teach_climb_gap').layers[1],
   require('levels.drop_block_path').layers[1],
 }
