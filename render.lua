@@ -28,6 +28,7 @@ render.setup = function()
   render.player_hang_above = render._load_anim("gfx/player_hang_above", 2)
   render.player_stand_and_hang = render._load_anim("gfx/player_stand_and_hang", 2)
   render.player_hang_in_pipe = render._load_anim("gfx/player_hang_in_pipe", 2)
+  render.player_hang_over_pipe = render._load_anim("gfx/player_hang_over_pipe", 2)
 
   render.tileset_quads = {}
 
@@ -150,7 +151,7 @@ render._render_level = function(state, render_tick)
 
   if state.dead then
     if render_tick % 60 < 30 then
-      render._draw_on_tile(state.player_pos[1], state.player_pos[2]+1, render.player_idle[1], 90)
+      render._draw_on_tile(state.player_pos[1], state.player_pos[2], render.player_idle[1], 90)
     end
   else
     local animation = render.player_idle
@@ -175,15 +176,34 @@ render._render_level = function(state, render_tick)
           end
           animation = render.player_hang_beside
         elseif grip.below then
-          if grip.below_left then
-            flip = true
+          if grip.below_left and grip.below_right then
+            animation = render.player_hang_over_pipe
+          else
+            if grip.below_left then
+              flip = true
+            end
+            animation = render.player_hang_above
           end
-          animation = render.player_hang_above
         end
       end
     end
 
-    render._draw_anim_on_tile(state.player_pos[1], state.player_pos[2]+1, animation, flip, render_tick)
+    local draw_pos = {unpack(state.player_pos)}
+
+    -- player sprite is 3 tiles wide, with the player in the middle, so we need to offset
+    if flip then
+      draw_pos[1] = draw_pos[1] + 1
+    else
+      draw_pos[1] = draw_pos[1] - 1
+    end
+
+    draw_pos[2] = draw_pos[2] + 1 -- offset for gui
+
+    render._draw_anim_on_tile(draw_pos[1], draw_pos[2], animation, flip, render_tick)
+
+    --love.graphics.setColor(1, 0, 0)
+    --render._draw_rect_on_tile(state.player_pos[1], state.player_pos[2]+1)
+    --love.graphics.setColor(1, 1, 1)
   end
 end
 
@@ -214,6 +234,12 @@ end
 
 render.render_game = function(state, render_tick)
   local evaluated_state = game_state.evaluate(state)
+  if evaluated_state.dead then
+    love.graphics.setColor(1, 0, 0)
+  else
+    love.graphics.setColor(1, 1, 1)
+  end
+
   love.graphics.clear(16/255, 25/255, 28/255)
   render._render_level(evaluated_state, render_tick)
   render._render_gui(evaluated_state, render_tick)
