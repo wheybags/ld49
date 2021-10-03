@@ -10,9 +10,21 @@ render._load_tex = function(path)
   return tex
 end
 
+render._load_anim = function(path, frames)
+  local anim = {}
+  for i=1,frames do
+    table.insert(anim, render._load_tex(path .. i .. ".png"))
+  end
+  return anim
+end
+
 render.setup = function()
   render.tileset = render._load_tex("gfx/tileset.png")
-  render.player_idle = {render._load_tex("gfx/player_idle1.png"), render._load_tex("gfx/player_idle2.png")}
+  render.player_idle = render._load_anim("gfx/player_idle", 2)
+  render.player_hang_beside = render._load_anim("gfx/player_hang_beside", 2)
+  render.player_hang_above = render._load_anim("gfx/player_hang_above", 2)
+  render.player_stand_and_hang = render._load_anim("gfx/player_stand_and_hang", 2)
+  render.player_hang_in_pipe = render._load_anim("gfx/player_hang_in_pipe", 2)
 
   render.tileset_quads = {}
 
@@ -77,14 +89,28 @@ render._draw_tile = function(x, y, tile_index)
                      0, render.scale, render.scale)
 end
 
-render._draw_on_tile = function(x, y, image, rotation_deg)
+render._draw_on_tile = function(x, y, image, rotation_deg, flip)
   if rotation_deg == nil then rotation_deg = 0 end
+  if flip == nil then flip = false end
+
+  local scaleX = render.scale
+  if flip then
+    scaleX = scaleX * -1
+  end
 
   love.graphics.draw(image,
                      (x + 0.5) * constants.tile_size * render.scale,
                      (y + 0.5) * constants.tile_size * render.scale,
-                     rotation_deg * 0.01745329, render.scale, render.scale,
+                     rotation_deg * 0.01745329, scaleX, render.scale,
                      constants.tile_size/2, constants.tile_size/2)
+end
+
+render._draw_anim_on_tile = function(x, y, anim, flip, render_tick)
+  local frame_time = math.floor(60 * 0.5)
+  local total_anim_time = #anim * frame_time
+  local frame_index = math.floor((render_tick % total_anim_time) / frame_time) + 1
+
+  render._draw_on_tile(x, y, anim[frame_index], 0, flip)
 end
 
 render._draw_rect_on_tile = function(x, y)
@@ -118,30 +144,38 @@ render._render_level = function(state, render_tick)
       render._draw_tile(x, y, game_state.index(state, x, y, with_transitions))
     end
   end
-  --for _, ball_pos in pairs(state.dirt_balls.bs) do
-  --  render._draw_tile(ball_pos[1], ball_pos[2], constants.dirt_backslash)
-  --end
-  --for _, ball_pos in pairs(state.dirt_balls.fs) do
-  --  render._draw_tile(ball_pos[1], ball_pos[2], constants.dirt_slash)
-  --end
 
+  local animation = render.player_idle
+  local flip = false
 
-  --for y = 0, state.height-1 do
-  --  for x = 0, state.width-1 do
-  --    render._draw_tile(x, y, game_state.index(state, x, y, state.bedrock_layer))
-  --
-  --    local real_tile = game_state.index(state, x, y)
-  --    if real_tile ~= constants.dirt_tile_id and real_tile ~= constants.bedrock_tile_id then
-  --      render._draw_tile(x, y, real_tile)
-  --    end
-  --  end
-  --end
+  local grip = game_state.has_grip(state)
 
-  if render_tick % 60 < 30 then
-    render._draw_on_tile(state.player_pos[1], state.player_pos[2], render.player_idle[1])
+  if grip.left and grip.right then
+    animation = render.player_hang_in_pipe
   else
-    render._draw_on_tile(state.player_pos[1], state.player_pos[2], render.player_idle[2])
+    if grip.on_solid_ground then
+      if grip.beside then
+        if grip.left then
+          flip = true
+        end
+        animation = render.player_stand_and_hang
+      end
+    else
+      if grip.beside then
+        if grip.left then
+          flip = true
+        end
+        animation = render.player_hang_beside
+      elseif grip.below then
+        if grip.below_left then
+          flip = true
+        end
+        animation = render.player_hang_above
+      end
+    end
   end
+
+  render._draw_anim_on_tile(state.player_pos[1], state.player_pos[2], animation, flip, render_tick)
 end
 
 render.render_game = function(state, render_tick)

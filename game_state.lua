@@ -387,6 +387,7 @@ game_state.has_grip = function(state_evaluated)
     right = grip_at_offset(1, 0),
     below_left = grip_at_offset(-1, 1),
     below_right = grip_at_offset(1, 1),
+    on_solid_ground = grip_at_offset(0, 1),
   }
 
   result.beside = result.left or result.right
