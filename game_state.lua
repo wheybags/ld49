@@ -22,6 +22,7 @@ local levels = {
   require('levels.drop_block_path').layers[1],
   require('levels.teach_dig2').layers[1],
   require('levels.drop_stalactite').layers[1],
+  require('levels.challenge2').layers[1],
   require('levels.winner').layers[1],
   require('levels.challenge').layers[1],
 }
@@ -430,8 +431,10 @@ game_state._try_drop_rocks = function(state)
 
         -- and repaint
         for _, point in pairs(segment) do
-          assert(game_state.index(state, point[1], point[2]+offset) == constants.air_tile_id)
-          game_state._set(state, point[1], point[2]+offset, segment_tile)
+          --assert(game_state.index(state, point[1], point[2]+offset) == constants.air_tile_id)
+          if not game_state._tile_is_solid(game_state.index(state, point[1], point[2]+offset)) then
+            game_state._set(state, point[1], point[2]+offset, segment_tile)
+          end
         end
       end
     end
@@ -538,6 +541,10 @@ game_state.generate_transitions = function(state)
     },
     {
       orig_tile = constants.rock_2_tile_id,
+      transitions = constants.bedrock_transitions,
+    },
+    {
+      orig_tile = constants.rock_3_tile_id,
       transitions = constants.bedrock_transitions,
     }
   }

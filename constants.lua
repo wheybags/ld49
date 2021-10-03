@@ -12,6 +12,7 @@ constants.deleted_placeholder_tile = -1
 
 constants.rock_1_tile_id = 2
 constants.rock_2_tile_id = 3
+constants.rock_3_tile_id = 11
 
 constants.gui_left_tile = 13
 constants.gui_middle_tile = 14
