@@ -84,7 +84,7 @@ render.setup = function()
 end
 
 render._draw_tile = function(x, y, tile_index)
-  assert(render.tileset_quads[tile_index])
+  assert(render.tileset_quads[tile_index], ''..tile_index)
 
   love.graphics.draw(render.tileset,
                      render.tileset_quads[tile_index],
@@ -133,7 +133,7 @@ render._draw_debug_segments = function(state)
     love.graphics.setColor(math.random(), math.random(), math.random())
 
     for _, pos in pairs(segment) do
-      render._draw_rect_on_tile(pos[1], pos[2])
+      render._draw_rect_on_tile(pos[1], pos[2]+1)
     end
   end
 

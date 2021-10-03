@@ -15,13 +15,15 @@ local coin_sfx = love.audio.newSource("/sfx/coin1.wav", "static")
 
 local levels = {
   --require('levels.test').layers[1],
-  --require('levels.teach_move_basic').layers[1],
-  --require('levels.teach_need_coins').layers[1],
+  require('levels.challenge').layers[1],
+  require('levels.teach_move_basic').layers[1],
+  require('levels.teach_need_coins').layers[1],
   require('levels.teach_dig').layers[1],
   require('levels.teach_climb_gap').layers[1],
   require('levels.drop_block_path').layers[1],
   require('levels.teach_dig2').layers[1],
   require('levels.drop_stalactite').layers[1],
+  require('levels.winner').layers[1],
 }
 
 
@@ -320,21 +322,28 @@ game_state.calculate_segments = function(state)
   return final_buckets
 end
 
+
 game_state._try_drop_rocks = function(state)
-  local segments = game_state.calculate_segments(state)
   local did_move = true
 
   while did_move do
     did_move = false
+
+    local segments = game_state.calculate_segments(state)
+
+    local segment_tiles = {}
+    -- we need to precalculate this because they might change as we move segments
     for seg_index, segment in pairs(segments) do
-      local segment_tile
       for _, point in pairs(segment) do
-        segment_tile = game_state.index(state, point[1], point[2])
+        segment_tiles[seg_index] = game_state.index(state, point[1], point[2])
         break
       end
-      assert(segment_tile)
+    end
 
-      if (game_state._tile_is_solid(segment_tile) or segment_tile == constants.loot_tile_id) and segment_tile ~= constants.deleted_placeholder_tile then
+    for seg_index, segment in pairs(segments) do
+      local segment_tile = segment_tiles[seg_index]
+
+      if (game_state._tile_is_solid(segment_tile) or segment_tile == constants.loot_tile_id or segment_tile == constants.level_end_tile_id) and segment_tile ~= constants.deleted_placeholder_tile then
         local can_fall = true
         for _, point in pairs(segment) do
           if point[1] == 0 or point[1] == (state.width-1) or point[2] == 0 or point[2] == (state.height-1) then
@@ -354,16 +363,16 @@ game_state._try_drop_rocks = function(state)
 
         if can_fall then
           did_move = true
+
+          -- clear out the current shape
           for _, point in pairs(segment) do
             game_state._set(state, point[1], point[2], constants.air_tile_id)
           end
-          local new_segment = {}
+
+          -- and repaint it one tile down
           for _, point in pairs(segment) do
-            local new_point = {point[1], point[2] + 1}
-            game_state._set(state, new_point[1], new_point[2], segment_tile)
-            new_segment[new_point[1] .. ',' .. new_point[2]] = new_point
+            game_state._set(state, point[1], point[2]+1, segment_tile)
           end
-          segments[seg_index] = new_segment
         end
       end
     end
@@ -446,8 +455,8 @@ game_state.restart = function(state)
   restart_sfx:clone():play()
 end
 
-game_state.try_next = function(state)
-  if game_state.evaluate(state).win then
+game_state.try_next = function(state, force)
+  if game_state.evaluate(state).win or force then
     local next_level_id = state.level_index + 1
     if next_level_id <= #levels then
       game_state.load_level(state, next_level_id)
