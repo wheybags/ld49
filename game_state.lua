@@ -23,6 +23,7 @@ local levels = {
   require('levels.teach_dig2').layers[1],
   require('levels.drop_stalactite').layers[1],
   require('levels.winner').layers[1],
+  require('levels.challenge').layers[1],
 }
 
 
