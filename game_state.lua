@@ -5,8 +5,8 @@ local serpent = require("extern.serpent")
 
 local levels = {
   --require('levels.test').layers[1],
-  require('levels.teach_move_basic').layers[1],
-  require('levels.teach_need_coins').layers[1],
+  --require('levels.teach_move_basic').layers[1],
+  --require('levels.teach_need_coins').layers[1],
   require('levels.teach_dig').layers[1],
   require('levels.teach_climb_gap').layers[1],
   require('levels.drop_block_path').layers[1],
@@ -66,6 +66,7 @@ game_state.load_level = function(state, level_index)
   state.height = level_data.height
   state.data = {unpack(level_data.data)}
   state.loot = 0
+  state.original_loot = 0
   state.moves = {}
   state.level_index = level_index
 
@@ -80,6 +81,8 @@ game_state.load_level = function(state, level_index)
       end
     end
   end
+
+  state.original_loot = state.loot
 
   game_state._eval_cache = {}
 end
@@ -126,6 +129,7 @@ game_state.evaluate = function(state)
         dead = false,
         win = false,
         loot = state.loot,
+        original_loot = state.loot,
         level_index = state.level_index,
       }
     end
@@ -398,10 +402,7 @@ end
 
 game_state.move = function(state, direction)
   if game_state.evaluate(state).win then
-    local next_level_id = state.level_index + 1
-    if next_level_id <= #levels then
-      game_state.load_level(state, next_level_id)
-    end
+    return
   end
 
   table.insert(state.moves, direction)
@@ -416,6 +417,19 @@ game_state.undo = function(state)
   if #state.moves > 0 then
     table.remove(state.moves, #state.moves)
     --print(serpent.line(state.moves))
+  end
+end
+
+game_state.restart = function(state)
+  game_state.load_level(state, state.level_index)
+end
+
+game_state.try_next = function(state)
+  if game_state.evaluate(state).win then
+    local next_level_id = state.level_index + 1
+    if next_level_id <= #levels then
+      game_state.load_level(state, next_level_id)
+    end
   end
 end
 

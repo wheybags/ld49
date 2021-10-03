@@ -1,7 +1,7 @@
 local constants = {}
 
 constants.tile_size = 16
-constants.screen_size = {32, 16}
+constants.screen_size = {32, 17}
 
 constants.spawn_tile_id = 6
 constants.air_tile_id = 0
@@ -12,6 +12,27 @@ constants.deleted_placeholder_tile = -1
 
 constants.rock_1_tile_id = 2
 constants.rock_2_tile_id = 3
+
+constants.gui_left_tile = 13
+constants.gui_middle_tile = 14
+constants.gui_right_tile = 15
+
+constants.number_tiles =
+{
+  73,
+  64,
+  65,
+  66,
+  67,
+  68,
+  69,
+  70,
+  71,
+  72,
+}
+
+constants.slash_tile = 74
+constants.coin_gui = 75
 
 
 

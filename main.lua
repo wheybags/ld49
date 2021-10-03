@@ -24,13 +24,17 @@ local function key_action(key)
     game_state.move(state, key)
   elseif key == "z" then
     game_state.undo(state)
+  elseif key == "r" then
+    game_state.restart(state)
+  elseif key == "return" then
+    game_state.try_next(state)
   end
 end
 
 local current_key = nil
 
 function love.keypressed(key)
-  if key == "right" or key == "left" or key == "up" or key == "down" or key == "z" then
+  if key == "right" or key == "left" or key == "up" or key == "down" or key == "z" or key == "r" or key == "return" then
     current_key = {key=key, ticks = 1}
     key_action(key)
   end

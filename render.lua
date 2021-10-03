@@ -20,6 +20,9 @@ end
 
 render.setup = function()
   render.tileset = render._load_tex("gfx/tileset.png")
+  render.instructions = render._load_tex("gfx/instructions.png")
+  render.dead = render._load_tex("gfx/dead.png")
+  render.next_level = render._load_tex("gfx/next_level.png")
   render.player_idle = render._load_anim("gfx/player_idle", 2)
   render.player_hang_beside = render._load_anim("gfx/player_hang_beside", 2)
   render.player_hang_above = render._load_anim("gfx/player_hang_above", 2)
@@ -141,47 +144,79 @@ render._render_level = function(state, render_tick)
 
   for y = 0, state.height-1 do
     for x = 0, state.width-1 do
-      render._draw_tile(x, y, game_state.index(state, x, y, with_transitions))
+      render._draw_tile(x, y+1, game_state.index(state, x, y, with_transitions))
     end
   end
 
-  local animation = render.player_idle
-  local flip = false
-
-  local grip = game_state.has_grip(state)
-
-  if grip.left and grip.right then
-    animation = render.player_hang_in_pipe
+  if state.dead then
+    if render_tick % 60 < 30 then
+      render._draw_on_tile(state.player_pos[1], state.player_pos[2]+1, render.player_idle[1], 90)
+    end
   else
-    if grip.on_solid_ground then
-      if grip.beside then
-        if grip.left then
-          flip = true
-        end
-        animation = render.player_stand_and_hang
-      end
+    local animation = render.player_idle
+    local flip = false
+
+    local grip = game_state.has_grip(state)
+
+    if grip.left and grip.right then
+      animation = render.player_hang_in_pipe
     else
-      if grip.beside then
-        if grip.left then
-          flip = true
+      if grip.on_solid_ground then
+        if grip.beside then
+          if grip.left then
+            flip = true
+          end
+          animation = render.player_stand_and_hang
         end
-        animation = render.player_hang_beside
-      elseif grip.below then
-        if grip.below_left then
-          flip = true
+      else
+        if grip.beside then
+          if grip.left then
+            flip = true
+          end
+          animation = render.player_hang_beside
+        elseif grip.below then
+          if grip.below_left then
+            flip = true
+          end
+          animation = render.player_hang_above
         end
-        animation = render.player_hang_above
       end
     end
+
+    render._draw_anim_on_tile(state.player_pos[1], state.player_pos[2]+1, animation, flip, render_tick)
+  end
+end
+
+render._render_gui = function(state, render_tick)
+  local gui_row = 0
+  for x=1,constants.screen_size[1]-2 do
+    render._draw_tile(x, gui_row, constants.gui_middle_tile)
+  end
+  render._draw_tile(0, gui_row, constants.gui_left_tile)
+  render._draw_tile(constants.screen_size[1]-1, gui_row, constants.gui_right_tile)
+
+  render._draw_on_tile(0, gui_row, render.instructions)
+
+  if state.dead and render_tick % 60 < 30 then
+    render._draw_on_tile(16, gui_row, render.dead)
   end
 
-  render._draw_anim_on_tile(state.player_pos[1], state.player_pos[2], animation, flip, render_tick)
+  if state.win and render_tick % 60 < 30 then
+    render._draw_on_tile(14, gui_row, render.next_level)
+  end
+
+  local score_start = 30
+  render._draw_tile(score_start, gui_row+4/16, constants.number_tiles[state.original_loot - state.loot+1])
+  render._draw_tile(score_start+5/16, gui_row+4/16, constants.slash_tile)
+  render._draw_tile(score_start+11/16, gui_row+4/16, constants.number_tiles[state.original_loot+1])
+  render._draw_tile(score_start+1, gui_row+4/16, constants.coin_gui)
 end
 
 render.render_game = function(state, render_tick)
   local evaluated_state = game_state.evaluate(state)
   love.graphics.clear(16/255, 25/255, 28/255)
   render._render_level(evaluated_state, render_tick)
+  render._render_gui(evaluated_state, render_tick)
 
   --render._draw_debug_segments(evaluated_state)
 end
