@@ -88,7 +88,7 @@ local fixed_update = function()
   render_tick = render_tick + 1
 
   if current_key then
-    if current_key.ticks % 10 == 0 then
+    if current_key.ticks % 8 == 0 then
       key_action(current_key.key)
     end
     current_key.ticks = current_key.ticks + 1

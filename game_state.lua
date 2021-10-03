@@ -3,6 +3,15 @@ local game_state = {}
 local constants = require("constants")
 local serpent = require("extern.serpent")
 
+
+local move_sfx = love.audio.newSource("/sfx/SFX_Jump_09.wav", "static")
+local drill_sfx = love.audio.newSource("/sfx/drill.wav", "static")
+local level_complete_sfx = love.audio.newSource("/sfx/level_complete.wav", "static")
+local error_sfx = love.audio.newSource("/sfx/error_006.wav", "static")
+local die_sfx = love.audio.newSource("/sfx/15_hit.wav", "static")
+local restart_sfx = love.audio.newSource("/sfx/13_item1.wav", "static")
+
+
 local levels = {
   --require('levels.test').layers[1],
   --require('levels.teach_move_basic').layers[1],
@@ -138,6 +147,7 @@ game_state.evaluate = function(state)
     local evaluated = evaluate_recursive(tails)
     local direction = moves[#moves]
 
+    evaluated.sfx = move_sfx
 
     if evaluated.dead or evaluated.win then
       return nil
@@ -183,6 +193,7 @@ game_state.evaluate = function(state)
     if game_state._tile_is_solid(target_tile_id) then
       if target_tile_id == constants.dirt_tile_id then
         dug = true
+        evaluated.sfx = drill_sfx
         game_state._set(evaluated, evaluated.player_pos[1], evaluated.player_pos[2], constants.deleted_placeholder_tile)
       else
         return nil
@@ -196,6 +207,7 @@ game_state.evaluate = function(state)
 
     if target_tile_id == constants.level_end_tile_id and evaluated.loot == 0 then
       evaluated.win = true
+      evaluated.sfx = level_complete_sfx
     end
 
     ---- special case for walking down stairs
@@ -209,6 +221,7 @@ game_state.evaluate = function(state)
     while true do
       if (evaluated.player_pos[2] + 1) >= evaluated.height then
         evaluated.dead = true
+        evaluated.sfx = die_sfx
         break
       end
 
@@ -235,6 +248,7 @@ game_state.evaluate = function(state)
 
     if game_state._tile_is_solid(game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2])) then
       evaluated.dead = true
+      evaluated.sfx = die_sfx
     end
 
     game_state._eval_cache[cache_key] = game_state.deepcopy(evaluated)
@@ -407,8 +421,12 @@ game_state.move = function(state, direction)
 
   table.insert(state.moves, direction)
 
-  if not game_state.evaluate(state) then
+  local new_state = game_state.evaluate(state)
+  if not new_state then
+    error_sfx:clone():play()
     table.remove(state.moves, #state.moves)
+  elseif new_state.sfx then
+    new_state.sfx:clone():play()
   end
   --print(serpent.line(state.moves))
 end
@@ -416,12 +434,14 @@ end
 game_state.undo = function(state)
   if #state.moves > 0 then
     table.remove(state.moves, #state.moves)
+    restart_sfx:clone():play()
     --print(serpent.line(state.moves))
   end
 end
 
 game_state.restart = function(state)
   game_state.load_level(state, state.level_index)
+  restart_sfx:clone():play()
 end
 
 game_state.try_next = function(state)
