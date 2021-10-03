@@ -19,7 +19,7 @@ render._load_anim = function(path, frames)
 end
 
 render.setup = function()
-  render.tileset = render._load_tex("gfx/tileset.png")
+  render.tileset = render._load_anim("gfx/tileset", 3)
   render.instructions = render._load_tex("gfx/instructions.png")
   render.dead = render._load_tex("gfx/dead.png")
   render.next_level = render._load_tex("gfx/next_level.png")
@@ -34,7 +34,7 @@ render.setup = function()
 
   local w
   local h
-  w, h = render.tileset:getDimensions()
+  w, h = render.tileset[1]:getDimensions()
 
   local idx = 0
 
@@ -42,7 +42,7 @@ render.setup = function()
     for x = 0, (w/constants.tile_size)-1 do
       local quad = love.graphics.newQuad(x * constants.tile_size, y * constants.tile_size,
         constants.tile_size, constants.tile_size,
-        render.tileset:getDimensions()
+        render.tileset[1]:getDimensions()
       )
 
       render.tileset_quads[idx] = quad
@@ -83,10 +83,14 @@ render.setup = function()
   love.window.setMode(size[1] * render.scale, size[2] * render.scale)
 end
 
-render._draw_tile = function(x, y, tile_index)
+render._draw_tile = function(x, y, tile_index, render_tick)
   assert(render.tileset_quads[tile_index], ''..tile_index)
 
-  love.graphics.draw(render.tileset,
+  local frame_time = math.floor(60 * 0.25)
+  local total_anim_time = #render.tileset * frame_time
+  local frame_index = math.floor((render_tick % total_anim_time) / frame_time) + 1
+
+  love.graphics.draw(render.tileset[frame_index],
                      render.tileset_quads[tile_index],
                      x * constants.tile_size * render.scale,
                      y * constants.tile_size * render.scale,
@@ -145,7 +149,7 @@ render._render_level = function(state, render_tick)
 
   for y = 0, state.height-1 do
     for x = 0, state.width-1 do
-      render._draw_tile(x, y+1, game_state.index(state, x, y, with_transitions))
+      render._draw_tile(x, y+1, game_state.index(state, x, y, with_transitions), render_tick)
     end
   end
 
@@ -210,10 +214,10 @@ end
 render._render_gui = function(state, render_tick)
   local gui_row = 0
   for x=1,constants.screen_size[1]-2 do
-    render._draw_tile(x, gui_row, constants.gui_middle_tile)
+    render._draw_tile(x, gui_row, constants.gui_middle_tile, render_tick)
   end
-  render._draw_tile(0, gui_row, constants.gui_left_tile)
-  render._draw_tile(constants.screen_size[1]-1, gui_row, constants.gui_right_tile)
+  render._draw_tile(0, gui_row, constants.gui_left_tile, render_tick)
+  render._draw_tile(constants.screen_size[1]-1, gui_row, constants.gui_right_tile, render_tick)
 
   render._draw_on_tile(0, gui_row, render.instructions)
 
@@ -227,13 +231,13 @@ render._render_gui = function(state, render_tick)
 
   local score_start = 30
   if state.original_loot < 10 then
-    render._draw_tile(score_start, gui_row+4/16, constants.number_tiles[state.original_loot - state.loot+1])
-    render._draw_tile(score_start+5/16, gui_row+4/16, constants.slash_tile)
-    render._draw_tile(score_start+11/16, gui_row+4/16, constants.number_tiles[state.original_loot+1])
+    render._draw_tile(score_start, gui_row+4/16, constants.number_tiles[state.original_loot - state.loot+1], render_tick)
+    render._draw_tile(score_start+5/16, gui_row+4/16, constants.slash_tile, render_tick)
+    render._draw_tile(score_start+11/16, gui_row+4/16, constants.number_tiles[state.original_loot+1], render_tick)
   else
-    render._draw_tile(score_start+8/16, gui_row+4/16, constants.exclamations)
+    render._draw_tile(score_start+8/16, gui_row+4/16, constants.exclamations, render_tick)
   end
-  render._draw_tile(score_start+1, gui_row+4/16, constants.coin_gui)
+  render._draw_tile(score_start+1, gui_row+4/16, constants.coin_gui, render_tick)
 end
 
 render.render_game = function(state, render_tick)
