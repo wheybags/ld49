@@ -15,7 +15,7 @@ return {
     {
       name = "tileset",
       firstgid = 1,
-      filename = "../gfx/tileset.tsx"
+      filename = "../asset_sources/levels/tileset.tsx"
     }
   },
   layers = {

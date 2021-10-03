@@ -5,6 +5,9 @@ local serpent = require("extern.serpent")
 
 local levels = {
   --require('levels.test').layers[1],
+  require('levels.teach_move_basic').layers[1],
+  require('levels.teach_need_coins').layers[1],
+  require('levels.teach_dig').layers[1],
   require('levels.teach_climb_gap').layers[1],
   require('levels.drop_block_path').layers[1],
 }
@@ -185,13 +188,13 @@ game_state.evaluate = function(state)
       evaluated.win = true
     end
 
-    -- special case for walking down stairs
-    if not dug and (direction == "left" or direction == "right") and
-       game_state._coord_valid(evaluated, evaluated.player_pos[1], evaluated.player_pos[2] + 1) and not game_state._tile_is_solid(game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2] + 1)) and
-       game_state._coord_valid(evaluated, evaluated.player_pos[1], evaluated.player_pos[2] + 2) and game_state._tile_is_solid(game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2] + 2))
-    then
-      evaluated.player_pos[2] = evaluated.player_pos[2] + 1
-    end
+    ---- special case for walking down stairs
+    --if not dug and (direction == "left" or direction == "right") and
+    --   game_state._coord_valid(evaluated, evaluated.player_pos[1], evaluated.player_pos[2] + 1) and not game_state._tile_is_solid(game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2] + 1)) and
+    --   game_state._coord_valid(evaluated, evaluated.player_pos[1], evaluated.player_pos[2] + 2) and game_state._tile_is_solid(game_state.index(evaluated, evaluated.player_pos[1], evaluated.player_pos[2] + 2))
+    --then
+    --  evaluated.player_pos[2] = evaluated.player_pos[2] + 1
+    --end
 
     while true do
       if (evaluated.player_pos[2] + 1) >= evaluated.height then
@@ -305,7 +308,7 @@ game_state._try_drop_rocks = function(state)
       end
       assert(segment_tile)
 
-      if game_state._tile_is_solid(segment_tile) and segment_tile ~= constants.deleted_placeholder_tile then
+      if (game_state._tile_is_solid(segment_tile) or segment_tile == constants.loot_tile_id) and segment_tile ~= constants.deleted_placeholder_tile then
         local can_fall = true
         for _, point in pairs(segment) do
           if point[1] == 0 or point[1] == (state.width-1) or point[2] == 0 or point[2] == (state.height-1) then
@@ -399,6 +402,7 @@ game_state.move = function(state, direction)
   if not game_state.evaluate(state) then
     table.remove(state.moves, #state.moves)
   end
+  --print(serpent.line(state.moves))
 end
 
 game_state.undo = function(state)
