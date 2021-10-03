@@ -4,3 +4,4 @@ Drill sound derived from: doorOpen_1.ogg by kenney: https://www.kenney.nl/assets
 Level complete sound from: question_001 by kenney: https://www.kenney.nl/assets/interface-sounds
 Error sound from: error_006 by kenney: https://www.kenney.nl/assets/interface-sounds
 Death sound from: 15_hit by shiru8bit: https://opengameart.org/content/nes-8-bit-sound-effects
+Coin sound from: coin1 by Luke.RUSTLTD: https://opengameart.org/content/10-8bit-coin-sounds

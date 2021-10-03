@@ -10,6 +10,7 @@ local level_complete_sfx = love.audio.newSource("/sfx/level_complete.wav", "stat
 local error_sfx = love.audio.newSource("/sfx/error_006.wav", "static")
 local die_sfx = love.audio.newSource("/sfx/15_hit.wav", "static")
 local restart_sfx = love.audio.newSource("/sfx/13_item1.wav", "static")
+local coin_sfx = love.audio.newSource("/sfx/coin1.wav", "static")
 
 
 local levels = {
@@ -203,6 +204,7 @@ game_state.evaluate = function(state)
     if target_tile_id == constants.loot_tile_id then
       game_state._set(evaluated, evaluated.player_pos[1], evaluated.player_pos[2], constants.air_tile_id)
       evaluated.loot = evaluated.loot - 1
+      evaluated.sfx = coin_sfx
     end
 
     if target_tile_id == constants.level_end_tile_id and evaluated.loot == 0 then
