@@ -24,7 +24,7 @@ function love.load()
   render.setup()
   state = game_state.new()
 
-  music = love.audio.newSource("/sfx/spy.mp3", "stream")
+  music = love.audio.newSource("/sfx/Spy.mp3", "stream")
   music:setLooping(true)
   music:play()
   music_normal()
