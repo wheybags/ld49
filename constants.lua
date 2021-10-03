@@ -34,6 +34,7 @@ constants.number_tiles =
 
 constants.slash_tile = 74
 constants.coin_gui = 75
+constants.exclamations = 76
 
 
 

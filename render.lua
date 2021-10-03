@@ -226,9 +226,13 @@ render._render_gui = function(state, render_tick)
   end
 
   local score_start = 30
-  render._draw_tile(score_start, gui_row+4/16, constants.number_tiles[state.original_loot - state.loot+1])
-  render._draw_tile(score_start+5/16, gui_row+4/16, constants.slash_tile)
-  render._draw_tile(score_start+11/16, gui_row+4/16, constants.number_tiles[state.original_loot+1])
+  if state.original_loot < 10 then
+    render._draw_tile(score_start, gui_row+4/16, constants.number_tiles[state.original_loot - state.loot+1])
+    render._draw_tile(score_start+5/16, gui_row+4/16, constants.slash_tile)
+    render._draw_tile(score_start+11/16, gui_row+4/16, constants.number_tiles[state.original_loot+1])
+  else
+    render._draw_tile(score_start+8/16, gui_row+4/16, constants.exclamations)
+  end
   render._draw_tile(score_start+1, gui_row+4/16, constants.coin_gui)
 end
 

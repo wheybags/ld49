@@ -15,6 +15,7 @@ local coin_sfx = love.audio.newSource("/sfx/coin1.wav", "static")
 
 local levels = {
   --require('levels.test').layers[1],
+
   require('levels.teach_move_basic').layers[1],
   require('levels.teach_need_coins').layers[1],
   require('levels.teach_dig').layers[1],
@@ -22,9 +23,11 @@ local levels = {
   require('levels.drop_block_path').layers[1],
   require('levels.teach_dig2').layers[1],
   require('levels.drop_stalactite').layers[1],
-  require('levels.challenge2').layers[1],
+  require('levels.extra2').layers[1],
   require('levels.winner').layers[1],
+  require('levels.challenge2').layers[1],
   require('levels.challenge').layers[1],
+  require('levels.real_winner').layers[1],
 }
 
 
@@ -223,6 +226,8 @@ game_state.evaluate = function(state)
     --  evaluated.player_pos[2] = evaluated.player_pos[2] + 1
     --end
 
+    game_state._try_drop_rocks(evaluated)
+
     while true do
       if (evaluated.player_pos[2] + 1) >= evaluated.height then
         evaluated.dead = true
@@ -240,7 +245,6 @@ game_state.evaluate = function(state)
       evaluated.player_pos[2] = evaluated.player_pos[2] + 1
     end
 
-    game_state._try_drop_rocks(evaluated)
 
     for y = 0, evaluated.height-1 do
       for x = 0, evaluated.width-1 do
