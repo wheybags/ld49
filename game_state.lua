@@ -438,6 +438,14 @@ game_state._try_drop_rocks = function(state)
           --assert(game_state.index(state, point[1], point[2]+offset) == constants.air_tile_id)
           if not game_state._tile_is_solid(game_state.index(state, point[1], point[2]+offset)) then
             game_state._set(state, point[1], point[2]+offset, segment_tile)
+
+            -- push the player down if we are pressing on top of him and there is free space below
+            if offset == 1 and
+               point[1] == state.player_pos[1] and point[2] + 1 == state.player_pos[2] and
+               point[2] + 2 < state.height and not game_state._tile_is_solid(game_state.index(state, point[1], point[2] + 2))
+            then
+              state.player_pos[2] = state.player_pos[2] + 1
+            end
           end
         end
       end
