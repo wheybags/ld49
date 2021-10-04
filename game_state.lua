@@ -16,6 +16,7 @@ local coin_sfx = love.audio.newSource("/sfx/coin1.wav", "static")
 local levels = {
   --require('levels.test').layers[1],
 
+  require('levels.title').layers[1],
   require('levels.teach_move_basic').layers[1],
   require('levels.teach_need_coins').layers[1],
   require('levels.teach_dig').layers[1],
@@ -501,6 +502,10 @@ game_state.has_grip = function(state_evaluated)
 end
 
 game_state.move = function(state, direction)
+  if state.level_index == 1 then
+    return
+  end
+
   if game_state.evaluate(state).win then
     return
   end
@@ -518,6 +523,10 @@ game_state.move = function(state, direction)
 end
 
 game_state.undo = function(state)
+  if state.level_index == 1 then
+    return
+  end
+
   if #state.moves > 0 then
     table.remove(state.moves, #state.moves)
     restart_sfx:clone():play()
@@ -526,12 +535,16 @@ game_state.undo = function(state)
 end
 
 game_state.restart = function(state)
+  if state.level_index == 1 then
+    return
+  end
+
   game_state.load_level(state, state.level_index)
   restart_sfx:clone():play()
 end
 
 game_state.try_next = function(state, force)
-  if game_state.evaluate(state).win or force then
+  if game_state.evaluate(state).win or force or state.level_index == 1 then
     local next_level_id = state.level_index + 1
     if next_level_id <= #levels then
       game_state.load_level(state, next_level_id)

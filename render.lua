@@ -219,25 +219,27 @@ render._render_gui = function(state, render_tick)
   render._draw_tile(0, gui_row, constants.gui_left_tile, render_tick)
   render._draw_tile(constants.screen_size[1]-1, gui_row, constants.gui_right_tile, render_tick)
 
-  render._draw_on_tile(0, gui_row, render.instructions)
+  if state.level_index > 1 then
+    render._draw_on_tile(0, gui_row, render.instructions)
 
-  if state.dead and render_tick % 60 < 30 then
-    render._draw_on_tile(16, gui_row, render.dead)
-  end
+    if state.dead and render_tick % 60 < 30 then
+      render._draw_on_tile(16, gui_row, render.dead)
+    end
 
-  if state.win and render_tick % 60 < 30 then
-    render._draw_on_tile(14, gui_row, render.next_level)
-  end
+    if state.win and render_tick % 60 < 30 then
+      render._draw_on_tile(14, gui_row, render.next_level)
+    end
 
-  local score_start = 30
-  if state.original_loot < 10 then
-    render._draw_tile(score_start, gui_row+4/16, constants.number_tiles[state.original_loot - state.loot+1], render_tick)
-    render._draw_tile(score_start+5/16, gui_row+4/16, constants.slash_tile, render_tick)
-    render._draw_tile(score_start+11/16, gui_row+4/16, constants.number_tiles[state.original_loot+1], render_tick)
-  else
-    render._draw_tile(score_start+8/16, gui_row+4/16, constants.exclamations, render_tick)
+    local score_start = 30
+    if state.original_loot < 10 then
+      render._draw_tile(score_start, gui_row+4/16, constants.number_tiles[state.original_loot - state.loot+1], render_tick)
+      render._draw_tile(score_start+5/16, gui_row+4/16, constants.slash_tile, render_tick)
+      render._draw_tile(score_start+11/16, gui_row+4/16, constants.number_tiles[state.original_loot+1], render_tick)
+    else
+      render._draw_tile(score_start+8/16, gui_row+4/16, constants.exclamations, render_tick)
+    end
+    render._draw_tile(score_start+1, gui_row+4/16, constants.coin_gui, render_tick)
   end
-  render._draw_tile(score_start+1, gui_row+4/16, constants.coin_gui, render_tick)
 end
 
 render.render_game = function(state, render_tick)
